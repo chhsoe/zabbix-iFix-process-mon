@@ -1,0 +1,77 @@
+zabbix_export:
+  version: '6.4'
+  template_groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+    - uuid: 1525c35a49b84643b78e505d135a1967
+      name: 'Windows Servers'
+  templates:
+    - uuid: dd31a5945ded4309a7d1c20925e83b32
+      template: 'Template iFix Processes'
+      name: 'Template iFix Processes'
+      groups:
+        - name: Templates
+        - name: 'Windows Servers'
+      discovery_rules:
+        - uuid: 631c6166e520471a89e82c7e9d5e185c
+          name: 'iFix Processes'
+          key: ifix.discovery
+          filter:
+            conditions:
+              - macro: '{#PROCESSNAME}'
+                value: '{$IFIX.SERVICES}'
+                formulaid: A
+          item_prototypes:
+            - uuid: 138470989ac04d60b1f790621e0e58a2
+              name: 'Process {#PROCESSNAME} Process Time %'
+              key: 'perf_counter[\Process({#PROCESSNAME})\% Processor Time,300]'
+              value_type: FLOAT
+              units: '%'
+              tags:
+                - tag: process
+                  value: '{#PROCESSNAME}'
+            - uuid: 269128ab845b4b1bb155a85adfb6465c
+              name: 'Process {#PROCESSNAME} Thread Count'
+              key: 'perf_counter[\Process({#PROCESSNAME})\Thread Count,300]'
+              value_type: FLOAT
+              tags:
+                - tag: process
+                  value: '{#PROCESSNAME}'
+            - uuid: 272a88b602f44c1e9d535acf4ada316a
+              name: 'Process {#PROCESSNAME} Working Set (RAM Usage)'
+              key: 'perf_counter[\Process({#PROCESSNAME})\working set,300]'
+              value_type: FLOAT
+              units: b
+              tags:
+                - tag: process
+                  value: '{#PROCESSNAME}'
+            - uuid: 8c79c80c5f084eecb760c8932c40ffe6
+              name: 'Process {#PROCESSNAME} Status'
+              key: 'proc.num[{#PROCESSNAME}.exe,{$IFIX.USER}]'
+              valuemap:
+                name: 'Service Running'
+              tags:
+                - tag: process
+                  value: '{#PROCESSNAME}'
+              trigger_prototypes:
+                - uuid: 29f3a441dce340e8a33d3fe25468de8b
+                  expression: 'last(/Template iFix Processes/proc.num[{#PROCESSNAME}.exe,{$IFIX.USER}])=0'
+                  name: '{#PROCESSNAME} Running trigger'
+                  priority: HIGH
+                  description: 'The process {#PROCESSNAME} is not running'
+                  tags:
+                    - tag: process
+                      value: '{#PROCESSNAME}'
+      macros:
+        - macro: '{$IFIX.SERVICES}'
+          value: '(?i)^(nntable|sysalertmgr|tcptask|comgr|nac|nam|almfile|almsum|fixtohist|fix_confighub_facade_service|ifix_model_service|sumqdel|igs_browser_service|wsastack|model_editor_service|ifix_tag_service|ifixopcdaserv|ihfixcollector|databasemanager|fixbackgroundsever|almsumoe|workspace|fmdmain|scu)$'
+        - macro: '{$IFIX.USER}'
+          value: iFIX
+      valuemaps:
+        - uuid: c48deaba07b54b378be1cd1760ac5252
+          name: 'Service Running'
+          mappings:
+            - value: '1'
+              newvalue: Running
+            - value: '0'
+              newvalue: 'Not Running'
